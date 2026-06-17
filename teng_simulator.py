@@ -206,7 +206,7 @@ with col3:
     st.metric(label="Capacitance (C)", value=f"{C*1e12:.2f} pF")
 
 with col4:
-    st.metric(label="Energy, value=f"{Energy_uJ:.3f} μJ")
+    st.metric(label="Energy", value=f"{Energy_uJ:.3f} μJ")
 
 # Air breakdown warning (only meaningful in contact mode)
 if "Contact" in operation_mode and x_SI > 1e-6:
