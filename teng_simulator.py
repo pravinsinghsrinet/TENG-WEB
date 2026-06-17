@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 TENG Simulator - Web App (Python + Streamlit)
-Modes: Attached Electrode - Contact Mode & Sliding Mode
+Professional Version with Tabs, Better Styling & Material Suggestions
 """
 
 import streamlit as st
@@ -12,23 +12,60 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import pandas as pd
 
-# ==================== PAGE SETUP ====================
+# ==================== PAGE CONFIG + PROFESSIONAL STYLING ====================
 st.set_page_config(
-    page_title="TENG CAD Simulator",
+    page_title="TENG Simulator",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ==================== TITLE ====================
-st.title("⚡ TENG Simulator")
+# Custom CSS
+st.markdown("""
+<style>
+    .main-header {
+        background: linear-gradient(90deg, #1e3a8a, #3b82f6);
+        padding: 25px 30px;
+        border-radius: 15px;
+        color: white;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    .stMetric {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px;
+    }
+    .stButton button {
+        background-color: #1e40af;
+        color: white;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# ====================== ADD YOUR NAME & COLLEGE HERE ======================
-st.markdown("**Developed by: Dr. Pravin Kumar Singh, Manipal University Jaipur, Rajasthan, India**")
-st.markdown("**Interactive Web App replicating TENG CAD Tool** | Contact & Sliding Modes | Educational Tool")
-# ==========================================================================
+# ==================== PROFESSIONAL HEADER ====================
+st.markdown("""
+<div class="main-header">
+    <h1 style="margin:0; font-size: 2.4rem; font-weight: 700;">⚡ TENG Simulator</h1>
+    <p style="margin:8px 0 0 0; font-size: 1.1rem; color: #dbeafe;">
+        Interactive Web Application TENG Tool<br>
+        <strong>Developed by:</strong> Dr. Pravin Kumar Singh &nbsp;&nbsp;|&nbsp;&nbsp; 
+        <strong>Manipal University Jaipur, Rajasthan, India</strong>
+    </p>
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown("---")
+
+# ==================== TABS ====================
+tab_simulator, tab_theory, tab_about = st.tabs([
+    "🔬 Simulator", 
+    "📚 Theory & Formulas", 
+    "ℹ️ About"
+])
 
 # ==================== MATERIAL DATABASE ====================
 MATERIALS = {
@@ -47,178 +84,250 @@ MATERIALS = {
     "Custom": None
 }
 
-with st.sidebar:
-    st.header("🔧 Configuration")
+def find_best_x(contact_type, sigma, w, l, d, er, er1, er2, d1, d2, mode):
+    """Find x that gives maximum energy"""
+    epsilon0 = 8.854187817e-12
+    S = (w * l) * 1e-6
+    w_SI = w * 1e-3
+    L_SI = l * 1e-3
 
-    operation_mode = st.radio(
-        "Operation Mode",
-        ["Contact Mode (Vertical Separation)", "Sliding Mode (Lateral Displacement)"],
-        index=0
-    )
-
-    contact_type = st.radio(
-        "Dielectric Configuration",
-        ["Conductor-to-Dielectric", "Dielectric-to-Dielectric"],
-        index=0
-    )
-
-    st.subheader("⚡ Triboelectric & Geometry")
-
-    # ==================== CONDUCTOR-TO-DIELECTRIC ====================
+    # Calculate effective d0
     if contact_type == "Conductor-to-Dielectric":
-
-        selected_material = st.selectbox(
-            "Dielectric Material",
-            list(MATERIALS.keys()),
-            index=0,
-            key="material_select"
-        )
-
-        if "current_er" not in st.session_state:
-            st.session_state.current_er = 2.1
-            st.session_state.current_sigma = 80.0
-            st.session_state.last_material = selected_material
-
-        if selected_material != st.session_state.last_material:
-            st.session_state.last_material = selected_material
-            if selected_material != "Custom":
-                st.session_state.current_er = MATERIALS[selected_material]
-                st.session_state.current_sigma = 70.0
-
-        er = st.number_input(
-            "Relative permittivity εᵣ",
-            min_value=1.1, max_value=20.0,
-            value=st.session_state.current_er,
-            step=0.1,
-            key=f"er_{selected_material}"
-        )
-
-        sigma = st.number_input(
-            "Triboelectric charge density σ (μC/m²)",
-            min_value=1.0, max_value=1000.0,
-            value=st.session_state.current_sigma,
-            step=5.0,
-            key=f"sigma_{selected_material}"
-        )
-
-        d1 = d2 = er1 = er2 = 0.0
-
-    # ==================== DIELECTRIC-TO-DIELECTRIC ====================
+        d0 = (d * 1e-6) / er
+        max_x = 10.0  # mm
     else:
+        d0 = (d1 * 1e-6) / er1 + (d2 * 1e-6) / er2
+        max_x = 0.9 * l
 
-        st.markdown("**Dielectric Layer 1 (Top)**")
-        mat1 = st.selectbox("Material 1", list(MATERIALS.keys()), index=0, key="mat1")
+    # Grid search
+    x_values = np.linspace(0.01, max_x, 800)
+    energies = []
 
-        er1 = st.number_input(
-            "εᵣ1",
-            min_value=1.1, max_value=20.0,
-            value=MATERIALS.get(mat1, 2.0) if mat1 != "Custom" else 2.0,
-            step=0.1,
-            key=f"er1_{mat1}"
+    for x_val in x_values:
+        x_SI = x_val * 1e-3
+
+        if mode == "Contact Mode (Vertical Separation)":
+            denom = d0 + x_SI
+            if denom <= 0:
+                denom = 1e-12
+            Qsc = (sigma * 1e-6) * S * (x_SI / denom)
+            Voc = ((sigma * 1e-6) / epsilon0) * x_SI
+        else:
+            # Sliding Mode
+            overlap = max(L_SI - x_SI, 1e-9)
+            C = epsilon0 * (w_SI * overlap) / d0
+            Qsc = (sigma * 1e-6) * w_SI * x_SI
+            Voc = Qsc / C if C > 0 else 0
+
+        energy = 0.5 * abs(Qsc) * abs(Voc) * 1e6
+        energies.append(energy)
+
+    max_energy = max(energies)
+    best_x_index = energies.index(max_energy)
+    best_x = x_values[best_x_index]
+
+    return round(best_x, 2), round(max_energy, 2)
+
+# ==================== SIMULATOR TAB ====================
+with tab_simulator:
+
+    with st.sidebar:
+        st.header("🔧 Configuration")
+
+        operation_mode = st.radio(
+            "Operation Mode",
+            ["Contact Mode (Vertical Separation)", "Sliding Mode (Lateral Displacement)"],
+            index=0
         )
 
-        st.markdown("**Dielectric Layer 2 (Bottom)**")
-        mat2 = st.selectbox("Material 2", list(MATERIALS.keys()), index=3, key="mat2")
-
-        er2 = st.number_input(
-            "εᵣ2",
-            min_value=1.1, max_value=20.0,
-            value=MATERIALS.get(mat2, 4.0) if mat2 != "Custom" else 4.0,
-            step=0.1,
-            key=f"er2_{mat2}"
+        contact_type = st.radio(
+            "Dielectric Configuration",
+            ["Conductor-to-Dielectric", "Dielectric-to-Dielectric"],
+            index=0
         )
 
-        sigma = st.number_input(
-            "Triboelectric charge density σ (μC/m²)",
-            min_value=1.0, max_value=1000.0,
-            value=60.0, step=5.0
-        )
-        d = er = 0.0
+        st.subheader("⚡ Triboelectric & Geometry")
 
-        # ==================== COMMON INPUTS ====================
-    w = st.number_input("Width w (mm)", min_value=5.0, max_value=500.0, value=50.0, step=5.0, key="width")
-    l = st.number_input("Length L (mm)", min_value=5.0, max_value=500.0, value=50.0, step=5.0, key="length")
+        # Conductor-to-Dielectric
+        if contact_type == "Conductor-to-Dielectric":
+            selected_material = st.selectbox(
+                "Dielectric Material",
+                list(MATERIALS.keys()),
+                index=0,
+                key="material_select"
+            )
+
+            if "current_er" not in st.session_state:
+                st.session_state.current_er = 2.1
+                st.session_state.current_sigma = 80.0
+                st.session_state.last_material = selected_material
+
+            if selected_material != st.session_state.last_material:
+                st.session_state.last_material = selected_material
+                if selected_material != "Custom":
+                    st.session_state.current_er = MATERIALS[selected_material]
+                    st.session_state.current_sigma = 70.0
+
+            er = st.number_input(
+                "Relative permittivity εᵣ",
+                min_value=1.1, max_value=20.0,
+                value=st.session_state.current_er,
+                step=0.1,
+                key=f"er_{selected_material}"
+            )
+
+            sigma = st.number_input(
+                "Triboelectric charge density σ (μC/m²)",
+                min_value=1.0, max_value=1000.0,
+                value=st.session_state.current_sigma,
+                step=5.0,
+                key=f"sigma_{selected_material}"
+            )
+            d1 = d2 = er1 = er2 = 0.0
+
+        # Dielectric-to-Dielectric
+        else:
+            st.markdown("**Dielectric Layer 1 (Top)**")
+            mat1 = st.selectbox("Material 1", list(MATERIALS.keys()), index=0, key="mat1")
+
+            er1 = st.number_input(
+                "εᵣ1",
+                min_value=1.1, max_value=20.0,
+                value=MATERIALS.get(mat1, 2.0) if mat1 != "Custom" else 2.0,
+                step=0.1,
+                key=f"er1_{mat1}"
+            )
+
+            st.markdown("**Dielectric Layer 2 (Bottom)**")
+            mat2 = st.selectbox("Material 2", list(MATERIALS.keys()), index=3, key="mat2")
+
+            er2 = st.number_input(
+                "εᵣ2",
+                min_value=1.1, max_value=20.0,
+                value=MATERIALS.get(mat2, 4.0) if mat2 != "Custom" else 4.0,
+                step=0.1,
+                key=f"er2_{mat2}"
+            )
+
+            sigma = st.number_input(
+                "Triboelectric charge density σ (μC/m²)",
+                min_value=1.0, max_value=1000.0,
+                value=60.0, step=5.0
+            )
+            d = er = 0.0
+
+        # Common Inputs
+        w = st.number_input("Width w (mm)", min_value=5.0, max_value=500.0, value=50.0, step=5.0, key="width")
+        l = st.number_input("Length L (mm)", min_value=5.0, max_value=500.0, value=50.0, step=5.0, key="length")
+
+        if contact_type == "Conductor-to-Dielectric":
+            d = st.number_input("Dielectric thickness d (μm)", min_value=5.0, max_value=2000.0, value=100.0, step=10.0, key="d_thick")
+        else:
+            d1 = st.number_input("Dielectric 1 thickness d1 (μm)", min_value=5.0, max_value=2000.0, value=50.0, step=5.0, key="d1_thick")
+            d2 = st.number_input("Dielectric 2 thickness d2 (μm)", min_value=5.0, max_value=2000.0, value=50.0, step=5.0, key="d2_thick")
+
+        x = st.number_input("Current x (mm)", min_value=0.0, max_value=200.0, value=1.0, step=0.1, key="x_val")
+        xmax = st.number_input("Maximum x for plots (mm)", min_value=0.5, max_value=300.0, 
+                               value=5.0 if "Contact" in operation_mode else 40.0, step=1.0, key="xmax_val")
+
+    # ==================== CALCULATIONS ====================
+    epsilon0 = 8.854187817e-12
+    sigma_SI = sigma * 1e-6
+    S_max = (w * l) * 1e-6
+    w_SI = w * 1e-3
+    L_SI = l * 1e-3
+    x_SI = x * 1e-3
 
     if contact_type == "Conductor-to-Dielectric":
-        d = st.number_input("Dielectric thickness d (μm)", min_value=5.0, max_value=2000.0, value=100.0, step=10.0, key="d_thick")
+        d0 = (d * 1e-6) / er
     else:
-        d1 = st.number_input("Dielectric 1 thickness d1 (μm)", min_value=5.0, max_value=2000.0, value=50.0, step=5.0, key="d1_thick")
-        d2 = st.number_input("Dielectric 2 thickness d2 (μm)", min_value=5.0, max_value=2000.0, value=50.0, step=5.0, key="d2_thick")
+        d0 = (d1 * 1e-6) / er1 + (d2 * 1e-6) / er2
+    if d0 <= 0: d0 = 1e-9
 
-    x = st.number_input("Current x (mm)", min_value=0.0, max_value=200.0, value=1.0, step=0.1, key="x_val")
-    xmax = st.number_input("Maximum x for plots (mm)", min_value=0.5, max_value=300.0, 
-                           value=5.0 if "Contact" in operation_mode else 40.0, step=1.0, key="xmax_val")
-# ==================== CALCULATIONS ====================
-epsilon0 = 8.854187817e-12
-sigma_SI = sigma * 1e-6
-S_max = (w * l) * 1e-6
-w_SI = w * 1e-3
-L_SI = l * 1e-3
-x_SI = x * 1e-3
+    if "Contact" in operation_mode:
+        denom = d0 + x_SI
+        if denom <= 0: denom = 1e-12
+        C = epsilon0 * S_max / denom
+        Voc = (sigma_SI / epsilon0) * x_SI
+        Qsc = sigma_SI * S_max * (x_SI / denom)
+        Energy_uJ = 0.5 * abs(Qsc) * abs(Voc) * 1e6
 
-if contact_type == "Conductor-to-Dielectric":
-    d0 = (d * 1e-6) / er
-else:
-    d0 = (d1 * 1e-6) / er1 + (d2 * 1e-6) / er2
-if d0 <= 0: d0 = 1e-9
+        x_plot_mm = np.linspace(0.001, xmax, 400)
+        x_plot = x_plot_mm * 1e-3
+        C_plot = epsilon0 * S_max / (d0 + x_plot)
+        Voc_plot = (sigma_SI / epsilon0) * x_plot
+        Qsc_plot = sigma_SI * S_max * (x_plot / (d0 + x_plot))
+        Energy_plot = 0.5 * Qsc_plot * Voc_plot * 1e6
+        mode_label = "Contact Mode"
+        x_label = "Separation x (mm)"
+    else:
+        overlap_current = max(L_SI - x_SI, 1e-9)
+        C = epsilon0 * (w_SI * overlap_current) / d0
+        Qsc = sigma_SI * w_SI * x_SI
+        Voc = Qsc / C if C > 0 else 0.0
+        Energy_uJ = 0.5 * abs(Qsc) * abs(Voc) * 1e6
 
-if "Contact" in operation_mode:
-    denom = d0 + x_SI
-    if denom <= 0: denom = 1e-12
-    C = epsilon0 * S_max / denom
-    Voc = (sigma_SI / epsilon0) * x_SI
-    Qsc = sigma_SI * S_max * (x_SI / denom)
-    Energy_uJ = 0.5 * abs(Qsc) * abs(Voc) * 1e6
+        xmax_eff = min(xmax, 0.95 * l)
+        x_plot_mm = np.linspace(0.0, xmax_eff, 400)
+        x_plot = x_plot_mm * 1e-3
+        overlap_plot = np.maximum(L_SI - x_plot, 1e-9)
+        C_plot = epsilon0 * (w_SI * overlap_plot) / d0
+        Qsc_plot = sigma_SI * w_SI * x_plot
+        Voc_plot = Qsc_plot / C_plot
+        Energy_plot = 0.5 * Qsc_plot * Voc_plot * 1e6
+        mode_label = "Sliding Mode"
+        x_label = "Displacement x (mm)"
 
-    x_plot_mm = np.linspace(0.001, xmax, 400)
-    x_plot = x_plot_mm * 1e-3
-    C_plot = epsilon0 * S_max / (d0 + x_plot)
-    Voc_plot = (sigma_SI / epsilon0) * x_plot
-    Qsc_plot = sigma_SI * S_max * (x_plot / (d0 + x_plot))
-    Energy_plot = 0.5 * Qsc_plot * Voc_plot * 1e6
-    mode_label = "Contact Mode"
-    x_label = "Separation x (mm)"
-else:
-    overlap_current = max(L_SI - x_SI, 1e-9)
-    C = epsilon0 * (w_SI * overlap_current) / d0
-    Qsc = sigma_SI * w_SI * x_SI
-    Voc = Qsc / C if C > 0 else 0.0
-    Energy_uJ = 0.5 * abs(Qsc) * abs(Voc) * 1e6
+    # ==================== RESULTS ====================
+    st.subheader(f"📈 Results at x = {x:.2f} mm | {mode_label} — {contact_type}")
 
-    xmax_eff = min(xmax, 0.95 * l)
-    x_plot_mm = np.linspace(0.0, xmax_eff, 400)
-    x_plot = x_plot_mm * 1e-3
-    overlap_plot = np.maximum(L_SI - x_plot, 1e-9)
-    C_plot = epsilon0 * (w_SI * overlap_plot) / d0
-    Qsc_plot = sigma_SI * w_SI * x_plot
-    Voc_plot = Qsc_plot / C_plot
-    Energy_plot = 0.5 * Qsc_plot * Voc_plot * 1e6
-    mode_label = "Sliding Mode"
-    x_label = "Displacement x (mm)"
+    col1, col2, col3, col4 = st.columns(4)
+    with col1: st.metric("Open-Circuit Voltage (Voc)", f"{Voc:.2f} V")
+    with col2: st.metric("Short-Circuit Charge (Qsc)", f"{Qsc*1e9:.2f} nC")
+    with col3: st.metric("Capacitance (C)", f"{C*1e12:.2f} pF")
+    with col4: st.metric("Energy", f"{Energy_uJ:.3f} μJ")
 
-# ==================== RESULTS ====================
-st.subheader(f"📈 Results at x = {x:.2f} mm | {mode_label} — {contact_type}")
-
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.metric("Open-Circuit Voltage (Voc)", f"{Voc:.2f} V")
-with col2:
-    st.metric("Short-Circuit Charge (Qsc)", f"{Qsc*1e9:.2f} nC")
-with col3:
-    st.metric("Capacitance (C)", f"{C*1e12:.2f} pF")
-with col4:
-    st.metric("Energy", f"{Energy_uJ:.3f} μJ")
-
-# ==================== DOWNLOAD BUTTON ====================
+  # ==================== DOWNLOAD BUTTON ====================
 if st.button("📥 Download Current Results as CSV"):
+    
+    # Safe material name
+    if contact_type == "Conductor-to-Dielectric":
+        material_name = selected_material
+    else:
+        material_name = f"{mat1} + {mat2}"
+
     data = {
-        "Parameter": ["Material", "Mode", "Configuration", "σ (μC/m²)", "Width (mm)", "Length (mm)", 
-                      "x (mm)", "Voc (V)", "Qsc (nC)", "Capacitance (pF)", "Energy (μJ)"],
-        "Value": [selected_material, operation_mode, contact_type, sigma, w, l, x, 
-                  round(Voc, 2), round(Qsc*1e9, 2), round(C*1e12, 2), round(Energy_uJ, 3)]
+        "Parameter": [
+            "Material", 
+            "Mode", 
+            "Configuration", 
+            "Sigma (uC/m2)",           # Changed from μC/m²
+            "Width (mm)", 
+            "Length (mm)", 
+            "x (mm)", 
+            "Voc (V)", 
+            "Qsc (nC)", 
+            "Capacitance (pF)", 
+            "Energy (uJ)"              # Changed from μJ
+        ],
+        "Value": [
+            material_name, 
+            operation_mode, 
+            contact_type, 
+            sigma, 
+            w, 
+            l, 
+            x, 
+            round(Voc, 2), 
+            round(Qsc*1e9, 2), 
+            round(C*1e12, 2), 
+            round(Energy_uJ, 3)
+        ]
     }
+    
     df = pd.DataFrame(data)
-    csv = df.to_csv(index=False).encode('utf-8')
+    csv = df.to_csv(index=False).encode('utf-8-sig')   # utf-8-sig helps with Excel
+    
     st.download_button(
         label="Click here to Download CSV",
         data=csv,
@@ -226,13 +335,15 @@ if st.button("📥 Download Current Results as CSV"):
         mime="text/csv"
     )
 
-# Air breakdown warning
-if "Contact" in operation_mode and x_SI > 1e-6:
-    E_field = Voc / x_SI
-    if E_field > 3.0e6:
-        st.warning(f"⚠️ Air-breakdown risk! Electric field ≈ {E_field/1e6:.2f} MV/m")
+    # Air Breakdown Warning
+    if "Contact" in operation_mode and x_SI > 1e-6:
+        E_field = Voc / x_SI
+        if E_field > 3.0e6:
+            st.warning(f"⚠️ Air-breakdown risk! Electric field ≈ {E_field/1e6:.2f} MV/m")
 
-# ==================== SCHEMATIC ====================
+    # Schematic
+   
+   # ==================== SCHEMATIC ====================
 st.subheader("📐 Interactive Device Schematic (gap / overlap updates with x)")
 
 fig_schem, ax = plt.subplots(figsize=(10, 4.5))
@@ -300,32 +411,32 @@ else:
 st.pyplot(fig_schem, use_container_width=True)
 
 # ==================== PLOTS ====================
+
 st.subheader(f"📊 {mode_label} Characteristics vs {x_label}")
 
 fig, axs = plt.subplots(2, 2, figsize=(11, 7.5), sharex=True)
 
+# 1. Voc
 axs[0, 0].plot(x_plot_mm, Voc_plot, color='#2980b9', linewidth=2.2)
-axs[0, 0].axvline(x=x, color='red', linestyle='--', linewidth=1.5, alpha=0.8, label=f'Current x = {x} mm')
 axs[0, 0].set_ylabel('Voc (V)', fontsize=10)
 axs[0, 0].set_title('Open-Circuit Voltage', fontsize=11, fontweight='bold')
 axs[0, 0].grid(True, alpha=0.3)
-axs[0, 0].legend(loc='upper left', fontsize=8)
 
+# 2. Qsc
 axs[0, 1].plot(x_plot_mm, Qsc_plot * 1e9, color='#27ae60', linewidth=2.2)
-axs[0, 1].axvline(x=x, color='red', linestyle='--', linewidth=1.5, alpha=0.8)
 axs[0, 1].set_ylabel('Qsc (nC)', fontsize=10)
 axs[0, 1].set_title('Short-Circuit Transferred Charge', fontsize=11, fontweight='bold')
 axs[0, 1].grid(True, alpha=0.3)
 
+# 3. Capacitance
 axs[1, 0].plot(x_plot_mm, C_plot * 1e12, color='#8e44ad', linewidth=2.2)
-axs[1, 0].axvline(x=x, color='red', linestyle='--', linewidth=1.5, alpha=0.8)
 axs[1, 0].set_xlabel(x_label, fontsize=10)
 axs[1, 0].set_ylabel('C (pF)', fontsize=10)
 axs[1, 0].set_title('Capacitance', fontsize=11, fontweight='bold')
 axs[1, 0].grid(True, alpha=0.3)
 
+# 4. Energy
 axs[1, 1].plot(x_plot_mm, Energy_plot, color='#e67e22', linewidth=2.2)
-axs[1, 1].axvline(x=x, color='red', linestyle='--', linewidth=1.5, alpha=0.8)
 axs[1, 1].set_xlabel(x_label, fontsize=10)
 axs[1, 1].set_ylabel('Energy (μJ)', fontsize=10)
 axs[1, 1].set_title('Potential Harvested Energy', fontsize=11, fontweight='bold')
@@ -334,11 +445,12 @@ axs[1, 1].grid(True, alpha=0.3)
 plt.tight_layout()
 st.pyplot(fig, use_container_width=True)
 
-# ==================== THEORY ====================
-with st.expander("📚 Theory, Formulas & Physical Explanation (click to expand)", expanded=False):
+# ==================== THEORY TAB ====================
+with tab_theory:
+    st.header("📚 Theory & Formulas")
     st.markdown("""
     ### Core Model (Standard Analytical V–Q–x Relationship)
-    This simulator uses the widely accepted analytical model for attached-electrode TENGs.
+    This simulator uses the analytical model for attached-electrode TENGs.
     """)
     
     if contact_type == "Conductor-to-Dielectric":
@@ -356,5 +468,25 @@ with st.expander("📚 Theory, Formulas & Physical Explanation (click to expand)
     st.latex(r"Q_{sc}(x) = \sigma \cdot w \cdot x")
     st.latex(r"V_{oc}(x) = \frac{\sigma d_0}{\varepsilon_0} \cdot \frac{x}{L - x}")
 
+
+# ==================== ABOUT TAB ====================
+with tab_about:
+    st.header("ℹ️ About this Tool")
+    st.markdown("""
+    This interactive **TENG Simulator** is developed as an educational and research tool 
+    to understand the functionality of different TENG model.
+    
+    **Key Features:**
+    - Contact Mode & Sliding Mode
+    - Conductor-to-Dielectric and Dielectric-to-Dielectric configurations
+    - Interactive device schematic and real-time plots
+    - Smart material selection with auto-updating parameters
+    
+    **Developed at:** Manipal University Jaipur, Rajasthan, India
+    
+    For academic and research use.
+    """)
+
+
 st.markdown("---")
-st.caption("TENG Simulator v1.1 | Built with Python + Streamlit | For education & research")
+st.caption("TENG Simulator v1.2 | Built with Python + Streamlit | For education & research")
