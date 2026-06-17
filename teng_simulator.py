@@ -9,6 +9,8 @@ Run with: streamlit run teng_simulator.py
 
 import streamlit as st
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')          # Important for Streamlit Cloud
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
