@@ -1028,6 +1028,6 @@ with tab_about:
     ### Advanced Multi-Physics TENG Design & Optimization Platform
     **Developed at:** Manipal University Jaipur, Rajasthan, India  
     **TENG Simulator v2.0** | Python + Streamlit | For academic research
-
+ """)
 st.markdown("---")
 st.caption("TENG Simulator v2.0 | Dr. Pravin Kumar Singh | Manipal University Jaipur | Advanced Multi-Physics Platform")
