@@ -1023,7 +1023,7 @@ Simulation config:
 #  TAB 13 — ABOUT
 # ═══════════════════════════════════════════════════════════════
 with tab_about:
-    st.header("ℹ️ About TENG Simulator v2.0")
+ st.header("ℹ️ About TENG Simulator v2.0")
     st.markdown("""
     ### Advanced Multi-Physics TENG Design & Optimization Platform
 
