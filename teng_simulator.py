@@ -1023,12 +1023,9 @@ Simulation config:
 #  TAB 13 — ABOUT
 # ═══════════════════════════════════════════════════════════════
 with tab_about:
- st.header("ℹ️ About TENG Simulator v2.0")
+    st.header("ℹ️ About TENG Simulator v2.0")
     st.markdown("""
     ### Advanced Multi-Physics TENG Design & Optimization Platform
-
-    This simulator represents advanced TENG simulators with multiple novel physics modules
-     ---
     **Developed at:** Manipal University Jaipur, Rajasthan, India  
     **TENG Simulator v2.0** | Python + Streamlit | For academic research
 
