@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 TENG Simulator v2.0 — Advanced Multi-Physics Platform
-Novel additions for high-impact journal publication & patent filing.
 
 Developed by: Dr. Pravin Kumar Singh
 Manipal University Jaipur, Rajasthan, India
@@ -1028,41 +1027,10 @@ with tab_about:
     st.markdown("""
     ### Advanced Multi-Physics TENG Design & Optimization Platform
 
-    This simulator represents a **significant upgrade** over standard TENG simulators with multiple
-    novel physics modules suitable for **high-impact journal publication and patent filing**.
-
-    #### Novel Contributions (v2.0)
-    | Module | Novelty | Application |
-    |--------|---------|-------------|
-    | **Humidity & Charge Decay** | σ(t) with material-specific τ(RH) | Real-world stability prediction |
-    | **Rotary TENG Mode** | Full V–Q–θ analytical model | Wind, rotary energy harvesting |
-    | **Impedance Matching** | P(R) optimizer + V/I curves | Circuit design & IoT |
-    | **FOM Calculator** | Interactive FOM_SE contour maps | Material benchmarking |
-    | **Self-Powered Sensor** | S_v(d, εᵣ, k_n) sensitivity model | Wearable sensors |
-    | **Multi-Layer Scaling** | n-layer tradeoff (V↑, C↓) | High-voltage TENG stacks |
-    | **Frequency Domain** | I_sc(f), P_avg(f) spectral model | Wearable & IoT optimization |
-    | **2D Heatmaps** | σ–εᵣ design space maps | Material selection guide |
-    | **Monte Carlo** | Uncertainty propagation, PDF output | Fabrication tolerance analysis |
-    | **ZIP Export** | SVG figures + BibTeX + CSV | Direct journal submission |
-
-    #### Patent Claim Summary
-    > *"A computer-implemented multi-physics simulation platform for triboelectric nanogenerator 
-    design optimization comprising: (i) contact, sliding, and rotary mode simulation; 
-    (ii) humidity-coupled charge decay modeling; (iii) impedance-matched load power optimization; 
-    (iv) figure-of-merit computation for material pair benchmarking; (v) self-powered sensor 
-    sensitivity analysis; (vi) multi-layer stacking optimization; and (vii) frequency-domain 
-    power spectral analysis."*
-
-    #### Target Journals
-    - **Nano Energy** (IF ~19) — Best fit
-    - **Advanced Energy Materials** (IF ~27)
-    - **ACS Nano** (IF ~17)
-    - **npj Flexible Electronics** (IF ~14)
-
-    ---
+    This simulator represents advanced TENG simulators with multiple novel physics modules
+     ---
     **Developed at:** Manipal University Jaipur, Rajasthan, India  
-    **TENG Simulator v2.0** | Python + Streamlit | For academic research & patent filing
-    """)
+    **TENG Simulator v2.0** | Python + Streamlit | For academic research
 
 st.markdown("---")
 st.caption("TENG Simulator v2.0 | Dr. Pravin Kumar Singh | Manipal University Jaipur | Advanced Multi-Physics Platform")
